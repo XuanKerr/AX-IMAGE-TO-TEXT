@@ -17,7 +17,7 @@ import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
-
+import com.google.mlkit.vision.text.chinese.ChineseTextRecognizerOptions;
 import androidx.core.content.FileProvider;
 
 import com.google.mlkit.vision.common.InputImage;
@@ -43,7 +43,9 @@ public class MainActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS);
+        TextRecognition.getClient(
+    new ChineseTextRecognizerOptions.Builder().build()
+);
         buildScreen();
     }
 
