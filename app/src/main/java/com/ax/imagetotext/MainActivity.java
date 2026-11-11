@@ -3,27 +3,27 @@ package com.ax.imagetotext;
 import android.app.Activity;
 import android.content.ClipData;
 import android.content.ClipboardManager;
-import android.content.ContentValues;
 import android.content.Intent;
 import android.graphics.Color;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.MediaStore;
 import android.view.Gravity;
-import android.view.View;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout;
-import android.widget.ScrollView;
+import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
-import com.google.mlkit.vision.text.chinese.ChineseTextRecognizerOptions;
+
 import androidx.core.content.FileProvider;
 
 import com.google.mlkit.vision.common.InputImage;
 import com.google.mlkit.vision.text.Text;
 import com.google.mlkit.vision.text.TextRecognition;
 import com.google.mlkit.vision.text.TextRecognizer;
+import com.google.mlkit.vision.text.chinese.ChineseTextRecognizerOptions;
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions;
 
 import java.io.File;
@@ -37,15 +37,13 @@ public class MainActivity extends Activity {
 
     private EditText resultText;
     private TextView statusText;
+    private Spinner languageSpinner;
     private Uri cameraUri;
     private TextRecognizer recognizer;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        TextRecognition.getClient(
-    new ChineseTextRecognizerOptions.Builder().build()
-);
         buildScreen();
     }
 
@@ -66,12 +64,33 @@ public class MainActivity extends Activity {
         page.addView(title, new LinearLayout.LayoutParams(-1, -2));
 
         TextView intro = new TextView(this);
-        intro.setText("Chuyển hình ảnh thành văn bản • Tiếng Việt & English");
+        intro.setText("Chuyển hình ảnh thành văn bản");
         intro.setTextSize(13);
         intro.setTextColor(Color.DKGRAY);
         intro.setGravity(Gravity.CENTER);
-        intro.setPadding(0, 0, 0, dp(16));
+        intro.setPadding(0, 0, 0, dp(12));
         page.addView(intro);
+
+        TextView languageLabel = new TextView(this);
+        languageLabel.setText("CHỌN NGÔN NGỮ NHẬN DẠNG");
+        languageLabel.setTextColor(Color.rgb(35, 55, 75));
+        languageLabel.setTextSize(14);
+        languageLabel.setTypeface(null, 1);
+        page.addView(languageLabel);
+
+        languageSpinner = new Spinner(this);
+        String[] languages = {
+                "Tiếng Việt & English",
+                "Tiếng Trung 中文"
+        };
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(
+                this, android.R.layout.simple_spinner_item, languages);
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        languageSpinner.setAdapter(adapter);
+        languageSpinner.setSelection(0);
+        LinearLayout.LayoutParams spinnerLp = matchWrap();
+        spinnerLp.bottomMargin = dp(10);
+        page.addView(languageSpinner, spinnerLp);
 
         Button gallery = makeButton("CHỌN ẢNH TỪ THƯ VIỆN");
         gallery.setOnClickListener(v -> chooseImage());
@@ -84,7 +103,7 @@ public class MainActivity extends Activity {
         page.addView(camera, cameraLp);
 
         statusText = new TextView(this);
-        statusText.setText("Chọn ảnh hoặc chụp ảnh để bắt đầu nhận dạng.");
+        statusText.setText("Chọn ngôn ngữ, sau đó chọn ảnh hoặc chụp ảnh.");
         statusText.setTextColor(Color.rgb(70, 80, 90));
         statusText.setTextSize(13);
         statusText.setPadding(2, dp(12), 2, dp(8));
@@ -195,6 +214,20 @@ public class MainActivity extends Activity {
     private void recognizeImage(Uri uri) {
         statusText.setText("Đang nhận dạng hình ảnh...");
         try {
+            // Chọn đúng bộ nhận dạng theo ngôn ngữ người dùng đã chọn.
+            if (recognizer != null) {
+                recognizer.close();
+                recognizer = null;
+            }
+
+            if (languageSpinner.getSelectedItemPosition() == 1) {
+                recognizer = TextRecognition.getClient(
+                        new ChineseTextRecognizerOptions.Builder().build());
+            } else {
+                recognizer = TextRecognition.getClient(
+                        TextRecognizerOptions.DEFAULT_OPTIONS);
+            }
+
             InputImage image = InputImage.fromFilePath(this, uri);
             recognizer.process(image)
                     .addOnSuccessListener(this, this::showRecognizedText)
@@ -266,7 +299,10 @@ public class MainActivity extends Activity {
 
     @Override
     protected void onDestroy() {
-        if (recognizer != null) recognizer.close();
+        if (recognizer != null) {
+            recognizer.close();
+            recognizer = null;
+        }
         super.onDestroy();
     }
 }
